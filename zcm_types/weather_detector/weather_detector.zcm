@@ -1,0 +1,270 @@
+/** @mainpage Сообщение от модуля weather_detector
+ * с информацией об обнаруженных погодных условиях на кадре с камер машинного зрения.
+ * Данный документ содержит описание выходного сообщения для каждого из микромодулей.
+ */
+
+/*-------------------------------------------------------------------------------------*/
+
+/**
+ * @struct ZcmCamWDTimeday
+ * @brief Содержит информацию об обнаруженном промежутке времени суток.
+ * 
+ * Также содержит коды, соответствующие промежуткам времени суток.
+ *
+ * @var ZcmCamWDTimeday::group_info
+ * @brief - Информация о распознавании: \n
+ *          TIMEDAY_GROUP_UNCHANGED - без существенных отклонений \n
+ *          TIMEDAY_GROUP_NIGHT - ночное время \n
+ *          TIMEDAY_GROUP_DUSK - вечернее время (сумерки) \n
+ *          TIMEDAY_GROUP_SUNNY - яркий день \n
+ *          TIMEDAY_GROUP_VSUNNY - очень яркий день. \n
+ *
+ */
+struct ZcmCamWDTimeday
+{
+    ZcmService service;
+
+    int8_t group_info;
+
+	const int8_t TIMEDAY_GROUP_UNCHANGED = 0;
+	const int8_t TIMEDAY_GROUP_NIGHT = 1;
+	const int8_t TIMEDAY_GROUP_DUSK = 2;
+	const int8_t TIMEDAY_GROUP_SUNNY = 3;
+	const int8_t TIMEDAY_GROUP_VSUNNY = 4;
+}
+
+/*-------------------------------------------------------------------------------------*/
+
+/**
+ * @struct ZcmCamWDSkylinePoint
+ * @brief Информация о координате точки (пикселл на изображении), 
+ * принадлежащей линии, которая описывает найденную линию горизонта. 
+ * 
+ * @var ZcmCamWDSkylinePoint::x
+ * @brief - координата (пикселл) по оси X изображения. 
+ * Принимает значения от 0 до image::width - 1 (входного изображения).
+ *
+ * @var ZcmCamWDSkylinePoint::y
+ * @brief - координата (пикселл) по оси Y изображения. 
+ * Принимает значения от 0 до image::height - 1 (входного изображения).
+ */
+struct ZcmCamWDSkylinePoint
+{
+	int32_t x;
+	int32_t y;
+}
+
+/**
+ * @struct ZcmCamWDSkyline
+ * @brief Содержит информацию об обнаруженной линии горизонта,
+ * а также разделенном на 2 части входным изображением.
+ * 
+ * @var ZcmCamWDSkyline::top_image
+ * @brief - область изображения выше средней линии горизонта.
+ *
+ * @var ZcmCamWDSkyline::bottom_image
+ * @brief - область изображения ниже средней линии горизонта.
+ * 
+ * @var ZcmCamWDSkyline::sky_average_line
+ * @brief - средняя линия горизонта (усредненная от sky_poly_line).
+ * Если линия не обнаружена, sky_average_line будет представлена 
+ * двумя точками (0, 0) и (image::width - 1, 0).
+ * 
+ * @var ZcmCamWDSkyline::point_count
+ * @brief - число точек, описывающих кривую линии горизонта.
+ * Если линия не обнаружена, значению point_count присваивается 2.
+ *
+ * @var ZcmCamWDSkyline::sky_poly_line
+ * @brief - точки кривой, описывающей линию горизонта.
+ * Если линия не обнаружена, sky_poly_line будет представлена 
+ * двумя точками (0, 0) и (image::width - 1, 0).
+ * 
+ */
+struct ZcmCamWDSkyline
+{
+	ZcmService service;
+
+	ZcmCameraBaslerImagePresentation top_image;
+	ZcmCameraBaslerImagePresentation bottom_image;
+
+	ZcmCamWDSkylinePoint sky_average_line[2];
+	
+	int32_t point_count;
+	ZcmCamWDSkylinePoint sky_poly_line[point_count];
+}
+
+/*-------------------------------------------------------------------------------------*/
+
+/**
+ * @struct ZcmCamWDSnowground
+ * @brief Содержит информацию об обнаруженном снежном покрове на пути 
+ * следования локомотива.
+ *
+ * @var ZcmCamWDSnowground::group_info
+ * @brief - Информация о распознавании: \n
+ *          SNOWGROUND_GROUP_UNCHANGED - снег на земле отсутствует \n
+ *          SNOWGROUND_GROUP_SNOWY - снежно \n
+ *          SNOWGROUND_GROUP_VSNOWY - очень снежно. \n
+ *
+ */
+struct ZcmCamWDSnowground
+{
+	ZcmService service;
+
+	int8_t group_info;
+
+	const int8_t SNOWGROUND_GROUP_UNCHANGED = 0;
+	const int8_t SNOWGROUND_GROUP_SNOWY = 1;
+	const int8_t SNOWGROUND_GROUP_VSNOWY = 2;	
+}
+
+/*-------------------------------------------------------------------------------------*/
+
+/**
+ * @struct ZcmCamWDGlarePoint
+ * @brief Информация о координате точки (пикселл на изображении), 
+ * являющейся центром блика на изображении, а также о 
+ * радиусе, площади и показателе яркости.
+ * 
+ * @var ZcmCamWDGlarePoint::x
+ * @brief - координата (пикселл) центра блика по оси X изображения. 
+ * Принимает значения от 0 до image::width - 1 (входного изображения).
+ *
+ * @var ZcmCamWDGlarePoint::y
+ * @brief - координата (пикселл) центра блика по оси Y изображения. 
+ * Принимает значения от 0 до image::height - 1 (входного изображения).
+ *
+ * @var ZcmCamWDGlarePoint::radius
+ * @brief - радиус блика на камере. 
+ * Принимает значения от 0 до image::height / 2 или 
+ * от 0 до image::width / 2 (входного изображения).
+ *
+ * @var ZcmCamWDGlarePoint::area
+ * @brief - площадь блика на камере. 
+ * Принимает значения от 0 до image::total() (входного изображения).
+ *
+ * @var ZcmCamWDGlarePoint::intensity
+ * @brief - показатель яркости блика. 
+ * Принимает значения от 0 до 255 (цветовой канал Value палитры HSV).
+ *
+ */
+struct ZcmCamWDGlarePoint
+{
+    int32_t x;
+    int32_t y;
+
+    int32_t radius;
+    int32_t area;
+    
+    int8_t intensity;
+    
+}
+
+/**
+ * @struct ZcmCamWDGlare
+ * @brief Содержит информацию об обнаруженных бликах на изображении,
+ * включая центр окружности, радиус, площадь и показатель яркости.
+ *
+ * @var ZcmCamWDGlare::all_area
+ * @brief - общая площадь всех бликов на камере. 
+ * Принимает значения от 0 до image::total() (входного изображения).
+ * 
+ * @var ZcmCamWDGlare::glare_count
+ * @brief - число бликов на изображении.
+ * Если блики не обнаружены, значению glare_count присваивается 0.
+ *
+ * @var ZcmCamWDGlare::glares
+ * @brief - все блики, обнаруженные на изображении.
+ * 
+ */
+struct ZcmCamWDGlare
+{
+    ZcmService service;
+
+    int32_t all_area;
+
+    int32_t glare_count;
+    ZcmCamWDGlarePoint glares[glare_count];
+}
+
+/*-------------------------------------------------------------------------------------*/
+
+/**
+ * @struct ZcmCamWDRaindropPoint
+ * @brief Информация о координате точки (пикселл на изображении), 
+ * являющейся центром капли на изображении, а также о 
+ * радиусе, площади и степени размытия капли.
+ * 
+ * @var ZcmCamWDRaindropPoint::x
+ * @brief - координата (пикселл) центра капли по оси X изображения. 
+ * Принимает значения от 0 до image::width - 1 (входного изображения).
+ *
+ * @var ZcmCamWDRaindropPoint::y
+ * @brief - координата (пикселл) центра капли по оси Y изображения. 
+ * Принимает значения от 0 до image::height - 1 (входного изображения).
+ *
+ * @var ZcmCamWDRaindropPoint::radius
+ * @brief - радиус капли на переднем плане камеры. 
+ * Принимает значения от 0 до image::height / 2 или 
+ * от 0 до image::width / 2 (входного изображения).
+ *
+ * @var ZcmCamWDRaindropPoint::area
+ * @brief - площадь капли на камере. 
+ * Принимает значения от 0 до image::total() (входного изображения).
+ *
+ * @var ZcmCamWDRaindropPoint::blur_rate
+ * @brief - Информация о степени размытия: \n
+ *          RAINDROP_BLUR_RATE_UNCHANGED - значение по умолчанию,
+ *                                         если капли отсутствуют \n
+ *          RAINDROP_BLUR_RATE_LOW - слабое размытие \n
+ *          RAINDROP_BLUR_RATE_MIDDLE - средней размытости \n
+ *          RAINDROP_BLUR_RATE_HIGH - сильно размыто \n
+ *          RAINDROP_BLUR_RATE_VHIGH - очень сильно рназмыто \n
+ *
+ */
+struct ZcmCamWDRaindropPoint
+{
+    int32_t x;
+    int32_t y;
+
+    int32_t radius;
+    int32_t area;
+
+    int8_t blur_rate;
+
+	const int8_t RAINDROP_BLUR_RATE_UNCHANGED = 0;
+	const int8_t RAINDROP_BLUR_RATE_LOW = 1;
+	const int8_t RAINDROP_BLUR_RATE_MIDDLE = 2;
+	const int8_t RAINDROP_BLUR_RATE_HIGH = 3;
+	const int8_t RAINDROP_BLUR_RATE_VHIGH = 4;
+}
+
+/**
+ * @struct ZcmCamWDRaindrop
+ * @brief Содержит информацию об обнаруженных каплях на переднем плане изображения,
+ * включая центр окружности, радиус, площадь и показатель степени размытия.
+ *
+ * @var ZcmCamWDRaindrop::all_area
+ * @brief - общая площадь всех капель на изображении. 
+ * Принимает значения от 0 до image::total() (входного изображения).
+ * 
+ * @var ZcmCamWDRaindrop::drop_count
+ * @brief - число капель на изображении.
+ * Если капли не обнаружены, значению drop_count присваивается 0.
+ *
+ * @var ZcmCamWDRaindrop::raindrops
+ * @brief - все капли, обнаруженные на объективе камеры (передний план изображения).
+ * 
+ */
+struct ZcmCamWDRaindrop
+{
+    ZcmService service;
+
+    int32_t all_area;
+
+    int32_t drop_count;
+    ZcmCamWDRaindropPoint raindrops[drop_count];    
+}
+
+/*-------------------------------------------------------------------------------------*/
+

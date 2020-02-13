@@ -1,0 +1,54 @@
+/**
+ * @struct ZcmRailDetectorMask
+ * @brief Сообщение содержит координаты точки относительно лидара
+ *
+ * @var ZcmRailDetectorMask::calibration_params
+ * @brief параметры калибровки камеры
+ *
+ * @var ZcmRailDetectorMask::width
+ * @brief ширина.
+ *
+ * @var ZcmRailDetectorMask::height
+ * @brief высота.
+ *
+ * @var ZcmRailDetectorMask::data
+ * @brief данные картинки.
+ *
+ * @var ZcmRailDetectorMask::bytes_per_line
+ * @brief Часто линии картинок выравниваются, переменная указывает какой реальный
+ *        размер линии используется.
+ *
+ * @var ZcmRailDetectorMask::format
+ * @brief Формат задается строкой, но должен содержать фиксированные обозначения: \n
+ *         Gray_8, RGB_888 
+ *
+ * @var ZcmRailDetectorMask::mask
+ * @brief - маска пути
+ * 
+ */
+ 
+struct ZcmRailDetectorMask
+{
+    ZcmService service;
+    ZcmCameraCalibratingParams calibration_params;
+
+	int32_t     width;
+    int32_t     height;
+    int32_t     bytes_per_line;
+
+    string      format;
+
+    int32_t mask_size;
+    byte mask[mask_size];
+}
+
+/// @struct ZcmCameraCalibratingParams
+/// @brief Калибровочные параметры для камеры...
+///
+struct ZcmCameraCalibratingParams
+{
+    float cam_mtx [3][3];
+    float distCoeff [5];
+    float rvec [3];
+    float tvec [3];
+}

@@ -1,0 +1,47 @@
+//=======================================================================================
+/**
+ * @struct ZcmObjectStatus
+ * @brief - Статус объекта
+ * 
+ * @var ZcmObjectStatus::object_name
+ * @brief - Индификатор объекта соответствующий определенному реле, не более 20 символов
+ * 
+ * @var ZcmObjectStatus::object_state
+ * @brief - Состояние объекта - включен, выключен, рестарт: [on,off,restart]
+ * 
+ */
+struct  ZcmObjectStatus
+{
+    string object_name;
+    string object_state;
+}
+
+/**
+ * @struct ZcmDiscretModul 
+ * @brief - Статус вх/вых контактов устройства
+ *
+ * @struct ZcmDiscretModul::service
+ * @brief - Служебное сообщение
+ *  
+ * @var ZcmDiscretModul::object_count
+ * @brief - Количество котролируемых объектов(реле)
+ * 
+ * @struct ZcmDiscretModul::object
+ * @brief - Статус объекта
+ * 
+ * @vart ZcmReleStatus::object_rw
+ * @brief - тип объектов для чтения(вх. реле)/записи(вых. реле) (true/false)
+ *  
+ */
+struct  ZcmDiscretModul 
+{
+    ZcmService       service;
+
+    int8_t           object_count;
+    ZcmObjectStatus  object[object_count];
+    boolean          object_rw;
+}
+
+
+
+

@@ -1,0 +1,51 @@
+//=======================================================================================
+/**
+ * @struct ZcmObjectValue
+ * @brief - Значение объекта
+ *
+ * @struct ZcmObjectValue::service
+ * @brief - Время обновление измерения текущего объекта
+ * 
+ * @var ZcmObjectValue::object_name
+ * @brief - Индификатор объекта соответствующий определенному входу, не более 20 символов
+ * 
+ * @var ZcmObjectValue::object_value
+ * @brief - Значение объекта
+ * 
+ * @var ZcmObjectValue::valid_value
+ * @brief - Валидность измерения - валидное(true)
+ * 
+ */
+struct  ZcmObjectValue
+{
+    ZcmService       service;
+
+    string object_name;
+    float  object_value;
+    boolean valid_value;
+}
+
+/**
+ * @struct ZcmAdcModul 
+ * @brief - Значение АЦП
+ *
+ * @struct ZcmAdcModul::service
+ * @brief - Время последнего обновление измерения объекта
+ *  
+ * @var ZcmAdcModul::object_count
+ * @brief - Количество котролируемых объектов(токовых петель)
+ * 
+ * @struct ZcmAdcModul::object
+ * @brief - Значение объекта
+ */
+struct  ZcmAdcModul 
+{
+    ZcmService       service;
+
+    int8_t           object_count;
+    ZcmObjectValue   object[object_count];
+}
+
+
+
+
