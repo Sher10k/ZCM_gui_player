@@ -50,6 +50,8 @@ public:
     
 private slots:
     void changeEventNum(int);
+    void nextEvent();
+    void prevEvent();
     
     
 private:
@@ -57,10 +59,13 @@ private:
     std::string zcm_file;
     zcm::LogFile *zcm_log;
     int zcm_event_num;
+    bool event_direction;
+    int num_events;
     const zcm::LogEvent * event;
     std::set < std::string > zcm_list;
     
-    cv::Mat frame_plot;
+    cv::Mat frame_plot_L, frame_plot_R;
+    long L_timestamp, R_timestamp;
     
     int numOfZcmEvents();
     void updateFramePlot();

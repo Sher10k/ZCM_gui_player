@@ -10,21 +10,23 @@ ZCM_player::ZCM_player(QWidget *parent)
     connect( ui->zcm_event_num, SIGNAL(valueChanged(int)), ui->zcm_event_scale, SLOT(setValue(int)) );
     connect( ui->zcm_event_scale, SIGNAL(valueChanged(int)), ui->zcm_event_num, SLOT(setValue(int)) );
     connect( ui->zcm_event_num, SIGNAL(valueChanged(int)), this, SLOT(changeEventNum(int)) );
-    //connect( ui->zcm_event_scale, SIGNAL(valueChanged(int)), this, SLOT(changeEventNum(int)) );
+    connect( ui->next_event, SIGNAL(clicked()), this, SLOT(nextEvent()) );
+    connect( ui->prev_event, SIGNAL(clicked()), this, SLOT(prevEvent()) );
     
     // --- Calculate number of zcm events
-    int numEvents = numOfZcmEvents();
-    ui->zcm_event_size->setText( "from " + QString::number( numEvents ) );
+    num_events = numOfZcmEvents();
+    ui->zcm_event_size->setText( "from " + QString::number( num_events ) );
     // --- Output list of zcm events
     ui->zcm_info->appendPlainText( "Zcm_list: " );
     for(auto i : zcm_list)
         ui->zcm_info->appendPlainText( "\t" + QString::fromStdString(i) );
     
     // --- Set maximum range
-    ui->zcm_event_num->setMaximum( numEvents );
-    ui->zcm_event_scale->setMaximum( numEvents );
+    ui->zcm_event_num->setMaximum( num_events );
+    ui->zcm_event_scale->setMaximum( num_events );
     
-    
+    L_timestamp = 0;
+    R_timestamp = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,10 +78,12 @@ int ZCM_player::numOfZcmEvents()
     zcm_event_num = 0;
     
     event = zcm_log->readNextEvent();
+    event_direction = true;
             
     ui->zcm_event_info->clear();
     ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
     ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
+    ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
     
     return --numEvents;
 }
@@ -87,44 +91,102 @@ int ZCM_player::numOfZcmEvents()
 void ZCM_player::updateFramePlot()
 {
     ZcmCameraBaslerJpegFrame zcm_msg;
+    QImage q_frame_plot;
     if ( event->channel == "FLZcmCameraBaslerJpegFrame" )
     {
         zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
-        frame_plot = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
-        cv::resize( frame_plot, frame_plot, cv::Size(320, 240) );
-        QImage q_frame_plot = QImage( frame_plot.data, 
-                                      frame_plot.cols, 
-                                      frame_plot.rows, 
-                                      int(frame_plot.step),
-                                      QImage::Format_RGB888 );
+        frame_plot_L = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
+        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_L.cols) + " x " + 
+                                             QString::number(frame_plot_L.rows) );
+        cv::resize( frame_plot_L, frame_plot_L, cv::Size(480, 360) );
+        q_frame_plot = QImage( frame_plot_L.data, 
+                               frame_plot_L.cols, 
+                               frame_plot_L.rows, 
+                               int(frame_plot_L.step),
+                               QImage::Format_RGB888 );
         ui->Left_chennel->setPixmap( QPixmap::fromImage(q_frame_plot));
+        L_timestamp = zcm_msg.service.u_timestamp;
     }
+    else if ( event->channel == "FRZcmCameraBaslerJpegFrame" )
+    {
+        zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
+        frame_plot_R = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
+        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_R.cols) + " x " + 
+                                             QString::number(frame_plot_R.rows) );
+        cv::resize( frame_plot_R, frame_plot_R, cv::Size(480, 360) );
+        q_frame_plot = QImage( frame_plot_R.data, 
+                               frame_plot_R.cols, 
+                               frame_plot_R.rows, 
+                               int(frame_plot_R.step),
+                               QImage::Format_RGB888 );
+        ui->Right_chennel->setPixmap( QPixmap::fromImage(q_frame_plot));
+        R_timestamp = zcm_msg.service.u_timestamp;
+    }
+    ui->L_timestamp->setText( QString::number(L_timestamp) );
+    ui->R_timestamp->setText( QString::number(R_timestamp) );
+    ui->Delta_timestamp->setText( QString::number(std::abs(R_timestamp-L_timestamp)) );
+}
+
+void ZCM_player::nextEvent()
+{
+    if ( (zcm_event_num < num_events) && (event->eventnum < num_events) )
+    {
+        if (!event_direction) event = zcm_log->readNextEvent();
+        event = zcm_log->readNextEvent();
+        event_direction = true;
+        
+        ui->zcm_event_num->setValue(++zcm_event_num);
+        ui->zcm_event_info->clear();
+        ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
+        ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
+        ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
+    }
+    this->updateFramePlot();
+}
+void ZCM_player::prevEvent()
+{
+    if ( (zcm_event_num > 0) && (event->eventnum > 0) )
+    {
+        if (event_direction) event = zcm_log->readPrevEvent();
+        event = zcm_log->readPrevEvent();
+        event_direction = false;
+        
+        ui->zcm_event_num->setValue(--zcm_event_num);
+        ui->zcm_event_info->clear();
+        ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
+        ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
+        ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
+    }
+    this->updateFramePlot();
 }
 
 void ZCM_player::changeEventNum( int event_num )
 {
-    //ui->zcm_info->appendPlainText( QString::number(event_num) );
     int delt_event_num = event_num - zcm_event_num;
-    event = zcm_log->readEventAtOffset(delt_event_num);
-//    if ( delt_event_num > 0 )
-//    {
-//        for ( int i = 0; i < delt_event_num; i++ )
-//        {
-//            event = zcm_log->readNextEvent();
-//        }
-//    }
-//    else if ( delt_event_num < 0 )
-//    {
-//        for ( int i = 0; i > delt_event_num; i-- )
-//        {
-//            event = zcm_log->readPrevEvent();
-//        }
-//    }
+    if ( delt_event_num > 0 )
+    {
+        if (!event_direction) event = zcm_log->readNextEvent();
+        for ( int i = 0; i < delt_event_num; i++ )
+        {
+            event = zcm_log->readNextEvent();
+            event_direction = true;
+        }
+    }
+    else if ( delt_event_num < 0 )
+    {
+        if (event_direction) event = zcm_log->readPrevEvent();
+        for ( int i = 0; i > delt_event_num; i-- )
+        {
+            event = zcm_log->readPrevEvent();
+            event_direction = false;
+        }
+    }
     zcm_event_num = event_num;
     
     ui->zcm_event_info->clear();
     ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
     ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
+    ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
     
     this->updateFramePlot();
 }

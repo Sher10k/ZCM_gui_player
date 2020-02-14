@@ -15,28 +15,38 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="0">
-     <widget class="QLabel" name="Left_chennel">
-      <property name="text">
-       <string>Left chennel</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="frame">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="3">
-     <widget class="QPlainTextEdit" name="zcm_event_info"/>
-    </item>
-    <item row="1" column="4">
-     <widget class="QPlainTextEdit" name="zcm_info"/>
-    </item>
-    <item row="0" column="0" colspan="5">
+    <item row="0" column="0" colspan="2">
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="prev_event">
+        <property name="text">
+         <string>&lt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="play_stop">
+        <property name="text">
+         <string>Play</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <property name="autoRepeat">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="next_event">
+        <property name="text">
+         <string>&gt;</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QSlider" name="zcm_event_scale">
         <property name="orientation">
@@ -59,6 +69,66 @@
        </widget>
       </item>
      </layout>
+    </item>
+    <item row="1" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="Left_chennel">
+          <property name="text">
+           <string>Left chennel</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="Right_chennel">
+          <property name="text">
+           <string>Right chennel</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="L_timestamp">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="Delta_timestamp">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="R_timestamp">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="frame">
+        <property name="text">
+         <string>Disp frame</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPlainTextEdit" name="zcm_event_info"/>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="1">
+     <widget class="QPlainTextEdit" name="zcm_info"/>
     </item>
    </layout>
   </widget>
