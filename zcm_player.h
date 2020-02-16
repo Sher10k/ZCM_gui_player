@@ -54,6 +54,8 @@ private slots:
     void prevEvent();
     
     
+    void on_actionOpen_triggered();
+    
 private:
     Ui::ZCM_player *ui;
     std::string zcm_file;
@@ -67,6 +69,7 @@ private:
     cv::Mat frame_plot_L, frame_plot_R;
     long L_timestamp, R_timestamp;
     
+    void loadZcmFile();
     int numOfZcmEvents();
     void updateFramePlot();
 };

@@ -1,6 +1,11 @@
 #include "zcm_player.h"
 #include "ui_zcm_player.h"
 
+#include <QFileDialog>
+
+#define WIDTH_PLOT 480
+#define HEIGHT_PLOT 360
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ZCM_player::ZCM_player(QWidget *parent)
     : QMainWindow(parent)
@@ -13,20 +18,13 @@ ZCM_player::ZCM_player(QWidget *parent)
     connect( ui->next_event, SIGNAL(clicked()), this, SLOT(nextEvent()) );
     connect( ui->prev_event, SIGNAL(clicked()), this, SLOT(prevEvent()) );
     
-    // --- Calculate number of zcm events
-    num_events = numOfZcmEvents();
-    ui->zcm_event_size->setText( "from " + QString::number( num_events ) );
-    // --- Output list of zcm events
-    ui->zcm_info->appendPlainText( "Zcm_list: " );
-    for(auto i : zcm_list)
-        ui->zcm_info->appendPlainText( "\t" + QString::fromStdString(i) );
-    
-    // --- Set maximum range
-    ui->zcm_event_num->setMaximum( num_events );
-    ui->zcm_event_scale->setMaximum( num_events );
-    
+    zcm_file = "";
+    frame_plot_L = cv::Mat::zeros( HEIGHT_PLOT, WIDTH_PLOT, CV_8UC3 );
+    frame_plot_R = cv::Mat::zeros( HEIGHT_PLOT, WIDTH_PLOT, CV_8UC3 );
     L_timestamp = 0;
     R_timestamp = 0;
+    
+    updateFramePlot();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,13 +34,41 @@ ZCM_player::~ZCM_player()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void ZCM_player::loadZcmFile()
+{
+    ui->zcm_info->clear();
+    disconnect( ui->zcm_event_num, SIGNAL(valueChanged(int)), this, SLOT(changeEventNum(int)) );
+    ui->zcm_event_num->setValue(0);
+    ui->zcm_event_scale->setValue(0);
+    // --- Calculate number of zcm events
+    num_events = numOfZcmEvents();
+    ui->zcm_event_size->setText( "from " + QString::number( num_events ) );
+    // --- Output list of zcm events
+    ui->zcm_info->appendPlainText( "Zcm_list: " );
+    for(auto i : zcm_list)
+        ui->zcm_info->appendPlainText( "\t" + QString::fromStdString(i) );
+    
+    frame_plot_L = cv::Mat::zeros( HEIGHT_PLOT, WIDTH_PLOT, CV_8UC3 );
+    frame_plot_R = cv::Mat::zeros( HEIGHT_PLOT, WIDTH_PLOT, CV_8UC3 );
+    L_timestamp = 0;
+    R_timestamp = 0;
+    updateFramePlot();
+    
+    // --- Set maximum range
+    ui->zcm_event_num->setMaximum( num_events );
+    ui->zcm_event_scale->setMaximum( num_events );
+    connect( ui->zcm_event_num, SIGNAL(valueChanged(int)), this, SLOT(changeEventNum(int)) );
+}
+
 int ZCM_player::numOfZcmEvents()
 {
     int numEvents = 0;
     zcm_list.clear();
     
     // --- Read zcm file
-    zcm_file = "/home/roman/Reconst_Stereo/zcm_logs/534_train_1910091050.zcm.0";
+    //zcm_file = "/home/roman/Reconst_Stereo/zcm_logs/534_train_1910091050.zcm.1";
+                //"/home/roman/Reconst_Stereo/zcm_logs/534_train_1910091210.zcm.0";
+    
                 //"/home/roman/videos/data/534_loco/zcm_files/20191009/534_train_1910091153.zcm.0";     // tank
                 //"/home/roman/videos/data/534_loco/zcm_files/20191009/534_train_1910091121.zcm.1";     // tank
                 //"/home/roman/videos/data/534_loco/zcm_files/20191009/534_train_1910091050.zcm.2";     // global line
@@ -90,38 +116,25 @@ int ZCM_player::numOfZcmEvents()
 
 void ZCM_player::updateFramePlot()
 {
-    ZcmCameraBaslerJpegFrame zcm_msg;
-    QImage q_frame_plot;
-    if ( event->channel == "FLZcmCameraBaslerJpegFrame" )
-    {
-        zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
-        frame_plot_L = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
-        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_L.cols) + " x " + 
-                                             QString::number(frame_plot_L.rows) );
-        cv::resize( frame_plot_L, frame_plot_L, cv::Size(480, 360) );
-        q_frame_plot = QImage( frame_plot_L.data, 
-                               frame_plot_L.cols, 
-                               frame_plot_L.rows, 
-                               int(frame_plot_L.step),
-                               QImage::Format_RGB888 );
-        ui->Left_chennel->setPixmap( QPixmap::fromImage(q_frame_plot));
-        L_timestamp = zcm_msg.service.u_timestamp;
-    }
-    else if ( event->channel == "FRZcmCameraBaslerJpegFrame" )
-    {
-        zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
-        frame_plot_R = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
-        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_R.cols) + " x " + 
-                                             QString::number(frame_plot_R.rows) );
-        cv::resize( frame_plot_R, frame_plot_R, cv::Size(480, 360) );
-        q_frame_plot = QImage( frame_plot_R.data, 
-                               frame_plot_R.cols, 
-                               frame_plot_R.rows, 
-                               int(frame_plot_R.step),
-                               QImage::Format_RGB888 );
-        ui->Right_chennel->setPixmap( QPixmap::fromImage(q_frame_plot));
-        R_timestamp = zcm_msg.service.u_timestamp;
-    }
+    cv::Mat temp_frame_plot;
+    cv::cvtColor( frame_plot_L, temp_frame_plot, cv::COLOR_BGR2RGB );
+    QImage q_frame_plot_L = QImage( temp_frame_plot.data, 
+                                    temp_frame_plot.cols, 
+                                    temp_frame_plot.rows, 
+                                    int(temp_frame_plot.step),
+                                    QImage::Format_RGB888 );
+    q_frame_plot_L = q_frame_plot_L.scaled( QSize(WIDTH_PLOT, HEIGHT_PLOT) );
+    ui->Left_chennel->setPixmap( QPixmap::fromImage(q_frame_plot_L));
+    
+    cv::cvtColor( frame_plot_R, temp_frame_plot, cv::COLOR_BGR2RGB );
+    QImage q_frame_plot_R = QImage( temp_frame_plot.data, 
+                                    temp_frame_plot.cols, 
+                                    temp_frame_plot.rows, 
+                                    int(temp_frame_plot.step),
+                                    QImage::Format_RGB888 );
+    q_frame_plot_R = q_frame_plot_R.scaled( QSize(WIDTH_PLOT, HEIGHT_PLOT) );
+    ui->Right_chennel->setPixmap( QPixmap::fromImage(q_frame_plot_R));
+    
     ui->L_timestamp->setText( QString::number(L_timestamp) );
     ui->R_timestamp->setText( QString::number(R_timestamp) );
     ui->Delta_timestamp->setText( QString::number(std::abs(R_timestamp-L_timestamp)) );
@@ -131,35 +144,16 @@ void ZCM_player::nextEvent()
 {
     if ( (zcm_event_num < num_events) && (event->eventnum < num_events) )
     {
-        if (!event_direction) event = zcm_log->readNextEvent();
-        event = zcm_log->readNextEvent();
-        event_direction = true;
-        
-        ui->zcm_event_num->setValue(++zcm_event_num);
-        ui->zcm_event_info->clear();
-        ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
-        ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
-        ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
+        ui->zcm_event_num->setValue(zcm_event_num + 1);
     }
-    this->updateFramePlot();
 }
 void ZCM_player::prevEvent()
 {
     if ( (zcm_event_num > 0) && (event->eventnum > 0) )
     {
-        if (event_direction) event = zcm_log->readPrevEvent();
-        event = zcm_log->readPrevEvent();
-        event_direction = false;
-        
-        ui->zcm_event_num->setValue(--zcm_event_num);
-        ui->zcm_event_info->clear();
-        ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
-        ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
-        ui->zcm_event_info->appendPlainText( QString::number( event->timestamp ) );
+        ui->zcm_event_num->setValue(zcm_event_num - 1);
     }
-    this->updateFramePlot();
 }
-
 void ZCM_player::changeEventNum( int event_num )
 {
     int delt_event_num = event_num - zcm_event_num;
@@ -183,6 +177,24 @@ void ZCM_player::changeEventNum( int event_num )
     }
     zcm_event_num = event_num;
     
+    ZcmCameraBaslerJpegFrame zcm_msg;
+    if ( event->channel == "FLZcmCameraBaslerJpegFrame" )
+    {
+        zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
+        frame_plot_L = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
+        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_L.cols) + " x " + 
+                                             QString::number(frame_plot_L.rows) );
+        L_timestamp = zcm_msg.service.u_timestamp;
+    }
+    else if ( event->channel == "FRZcmCameraBaslerJpegFrame" )
+    {
+        zcm_msg.decode( event->data, 0, static_cast< unsigned >( event->datalen ) );
+        frame_plot_R = imdecode( zcm_msg.jpeg, cv::IMREAD_COLOR );
+        ui->zcm_event_info->appendPlainText( QString::number(frame_plot_R.cols) + " x " + 
+                                             QString::number(frame_plot_R.rows) );
+        R_timestamp = zcm_msg.service.u_timestamp;
+    }
+    
     ui->zcm_event_info->clear();
     ui->zcm_event_info->appendPlainText( QString::fromStdString( event->channel ) );
     ui->zcm_event_info->appendPlainText( QString::number( event->eventnum ) );
@@ -191,3 +203,14 @@ void ZCM_player::changeEventNum( int event_num )
     this->updateFramePlot();
 }
 
+//-MENU-///////////////////////////////////////////////////////////////////////////////////////////
+void ZCM_player::on_actionOpen_triggered()
+{
+    QString filter = "ZCM File .zcm.* (*.zcm.*) ;; All File .* (*.*)";
+    QString file_name = QFileDialog::getOpenFileName( this, 
+                                                      "Open ZCM file", 
+                                                      "/home/roman/Reconst_Stereo/zcm_logs/", 
+                                                      filter );
+    zcm_file = file_name.toStdString();
+    loadZcmFile();
+}
